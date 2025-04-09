@@ -1,0 +1,20 @@
+{
+  "name": "avr-asr-to-stt",
+  "version": "1.0.1",
+  "author": "Giuseppe Careri",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node .",
+    "start:dev": "nodemon --inspect ./index.js",
+    "dc:build": "docker build --platform=linux/amd64 -t agentvoiceresponse/avr-asr-to-stt:latest -t agentvoiceresponse/avr-asr-to-stt:${npm_package_version} .",
+    "dc:push": "docker push agentvoiceresponse/avr-asr-to-stt:latest && docker push agentvoiceresponse/avr-asr-to-stt:${npm_package_version}"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
