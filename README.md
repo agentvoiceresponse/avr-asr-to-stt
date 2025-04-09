@@ -6,11 +6,15 @@ Currently, Agent Voice Response (AVR) supports ASR, LLM, and TTS modules. The go
 
 ## Proposed Architecture
 
+![AVR ASR to STT Architecture](public/avr-asr-to-stt.png)
+
 To achieve this integration, we propose developing two new Docker containers:
 
 1. **avr-asr-to-tts**: This container will handle Voice Activity Detection (VAD) and noise filtering. It will process the incoming audio stream, detect speech, and forward only relevant segments to the STT service.
 
 2. **avr-stt-[provider_name]**: This container will be responsible for interfacing with a specific STT provider, converting the processed audio into text, and returning the transcribed text to the AVR core.
+
+
 
 ## Key Considerations
 
