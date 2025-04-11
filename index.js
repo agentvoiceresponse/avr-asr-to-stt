@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 const fs = require("fs");
 const path = require("path");
 const express = require("express");
@@ -8,8 +8,10 @@ const SileroVADStream = require('./silero_stream'); // Require from same directo
 const app = express();
 
 // --- Configuration ---
-const MIN_SPEECH_DURATION = 1000; // Minimum speech duration in milliseconds
-const TRANSCRIPTION_SERVICE_URL = 'http://localhost:6021/transcribe'; // URL of the transcription service
+// Use environment variables with defaults
+const MIN_SPEECH_DURATION = parseInt(process.env.VAD_MIN_SPEECH_DURATION_MS || '1000', 10); // Minimum speech duration in milliseconds
+// IMPORTANT: Ensure the path '/transcribe' is correct for your STT service or update STT_URL in your .env file
+const STT_URL = process.env.STT_URL || 'http://localhost:6021/transcribe'; // URL of the STT service
 
 // Audio configuration (Input from client)
 const INPUT_AUDIO_CONFIG = {
@@ -18,7 +20,7 @@ const INPUT_AUDIO_CONFIG = {
   bitsPerSample: 16,
 };
 
-// Path to the ONNX model (relative to this server.js file)
+// Path to the ONNX model (relative to this server.js file) - Keeping this hardcoded for now
 const MODEL_PATH = path.join(__dirname, 'silero_vad.onnx');
 if (!fs.existsSync(MODEL_PATH)) {
     console.error(`\n!!! FATAL ERROR: ONNX model not found at ${MODEL_PATH}`);
@@ -41,18 +43,26 @@ const handleAudioStream = async (req, res) => {
   console.log(`\n[${new Date().toISOString()}] VAD Service: New connection`);
 
   try {
+      // Use environment variables for VAD parameters
+      const vadThreshold = parseFloat(process.env.VAD_THRESHOLD || '0.2');
+      const vadMinSilenceMs = parseInt(process.env.VAD_MIN_SILENCE_MS || '500', 10);
+      const vadSpeechPadMs = parseInt(process.env.VAD_SPEECH_PAD_MS || '300', 10);
+      const onnxProvider = process.env.ONNX_PROVIDER || 'cpu';
+
       vadStream = new SileroVADStream({
         inputSampleRate: INPUT_AUDIO_CONFIG.sampleRate,
         modelPath: MODEL_PATH,
-        // Use parameters determined previously
-        threshold: 0.2,
-        minSilenceDurationMs: 500,
-        speechPadMs: 300,
+        // Use parameters from environment variables or defaults
+        threshold: vadThreshold,
+        minSilenceDurationMs: vadMinSilenceMs,
+        speechPadMs: vadSpeechPadMs,
+        provider: onnxProvider // Pass provider from env
       });
 
       // Get the actual sample rate the VAD stream outputs (likely 16000Hz)
       const outputSampleRate = vadStream.options.sampleRate;
       console.log(`[VAD Service] VAD initialized. Outputting audio at ${outputSampleRate}Hz.`);
+      console.log(` - Threshold: ${vadThreshold}, Min Silence: ${vadMinSilenceMs}ms, Padding: ${vadSpeechPadMs}ms, Provider: ${onnxProvider}`);
 
       req.pipe(vadStream)
         .on('error', (err) => {
@@ -87,11 +97,11 @@ const handleAudioStream = async (req, res) => {
             }
 
             if (speechDuration >= MIN_SPEECH_DURATION) {
-              console.log(`[VAD Service] Sending audio chunk (${(combinedAudio.length / 1024).toFixed(2)} KB, ${outputSampleRate}Hz) to Transcription Service...`);
+              console.log(`[VAD Service] Sending audio chunk (${(combinedAudio.length / 1024).toFixed(2)} KB, ${outputSampleRate}Hz) to STT Service...`);
 
               try {
                 // Send raw audio buffer and sample rate to transcription service
-                const response = await axios.post(TRANSCRIPTION_SERVICE_URL, combinedAudio, {
+                const response = await axios.post(STT_URL, combinedAudio, { // Use STT_URL
                     headers: {
                         'Content-Type': 'application/octet-stream',
                         'X-Sample-Rate': outputSampleRate // Send sample rate as a header
@@ -99,13 +109,13 @@ const handleAudioStream = async (req, res) => {
                     maxBodyLength: Infinity, // Allow large audio buffers
                     maxContentLength: Infinity
                 });
-                console.log(`[VAD Service] Successfully sent audio to Transcription Service. Status: ${response.status}`);
+                console.log(`[VAD Service] Successfully sent audio to STT Service. Status: ${response.status}`); // Updated log
 
                 // Extract transcription from the response
                 const transcription = response.data && response.data.transcription;
 
                 if (transcription && !res.writableEnded) {
-                    console.log(`[VAD Service] Received transcription: "${transcription}". Sending back to client.`);
+                    console.log(`[VAD Service] Received transcription: \"${transcription}\". Sending back to client.`);
                     // Send transcription back to the original client
                     res.write(transcription + "\n"); // Add newline as a delimiter
                 } else if (!res.writableEnded) {
@@ -114,8 +124,8 @@ const handleAudioStream = async (req, res) => {
                      // res.write("[No transcription]\n");
                 }
 
-              } catch (err) {
-                console.error(`[VAD Service] Failed to send/receive from Transcription Service at ${TRANSCRIPTION_SERVICE_URL}`);
+              } catch (err) { // Renamed error variable for clarity
+                console.error(`[VAD Service] Failed to send/receive from STT Service at ${STT_URL}`); // Updated log
                 if (err.response) {
                     // The request was made and the server responded with a status code
                     // that falls out of the range of 2xx
@@ -191,6 +201,6 @@ app.listen(VAD_PORT, () => {
   console.log(`\n=== VAD Service Started ===`);
   console.log(`Timestamp: ${new Date().toISOString()}`);
   console.log(`Listening on port ${VAD_PORT}`);
-  console.log(`Forwarding audio to: ${TRANSCRIPTION_SERVICE_URL}`);
+  console.log(`Forwarding audio to: ${STT_URL}`); // Use STT_URL
   console.log(`========================\n`);
 });
