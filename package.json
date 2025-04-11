@@ -1,8 +1,8 @@
 {
   "name": "avr-asr-to-stt",
   "version": "1.0.1",
-  "author": "Giuseppe Careri",
-  "description": "",
+  "author": "Agent Voice Response <info@agentvoiceresponse.com>",
+  "description": "This project approach enhances AVR's capabilities by introducing a dedicated STT system with a robust VAD mechanism.",
   "main": "index.js",
   "scripts": {
     "start": "node .",
@@ -18,5 +18,13 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
-  }
+  },
+  "contributors": [{
+    "name": "Giuseppe Careri",
+    "email": "info@gcareri.com",
+    "url": "https://github.com/gcareri"
+  }, {
+    "name": "seif walid mamdouh",
+    "url": "https://github.com/seifwalid"
+  }]
 }
