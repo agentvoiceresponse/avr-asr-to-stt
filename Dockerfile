@@ -1,4 +1,4 @@
-FROM node:20-alpine As development
+FROM node:20-slim AS development
 
 WORKDIR /usr/src/app
 
@@ -10,12 +10,14 @@ RUN npm ci --omit=dev && npm cache clean --force
 # BUILD FOR PRODUCTION
 ###################
 
-FROM node:20-alpine As build
+FROM node:20-slim AS build
 
 WORKDIR /usr/src/app
 
 # Install required system libraries for onnxruntime-node
-RUN apk add --no-cache libc6-compat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
