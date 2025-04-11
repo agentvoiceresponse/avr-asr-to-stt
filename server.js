@@ -1,3 +1,4 @@
+// vad_service/server.js - Handles VAD and forwards audio to transcription service
 
 const fs = require("fs");
 const path = require("path");
@@ -186,7 +187,7 @@ const handleAudioStream = async (req, res) => {
 app.post('/speech-to-text-stream', handleAudioStream);
 
 // Start the VAD server
-const VAD_PORT = process.env.PORT || 6019;
+const VAD_PORT = process.env.VAD_PORT || 6019;
 app.listen(VAD_PORT, () => {
   console.log(`\n=== VAD Service Started ===`);
   console.log(`Timestamp: ${new Date().toISOString()}`);
