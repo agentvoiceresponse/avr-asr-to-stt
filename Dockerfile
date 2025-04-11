@@ -14,6 +14,9 @@ FROM node:20-alpine As build
 
 WORKDIR /usr/src/app
 
+# Install required system libraries for onnxruntime-node
+RUN apk add --no-cache libc6-compat
+
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
 COPY --chown=node:node silero_stream.js silero_stream.js
